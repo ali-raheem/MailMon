@@ -134,7 +134,8 @@ void setup() {
   // Read sensors
   float voltage = readBatteryVoltage();
   String battInfo = (voltage < LOW_BATT_LIMIT) ? " (Low Batt: " + String(voltage, 2) + "V)" : "";
-  
+  bool doorOpen = isDoorOpen();
+
   esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
 
   esp_task_wdt_reset();
@@ -142,7 +143,7 @@ void setup() {
   // Handle wakeup events
   if (wakeup_reason == ESP_SLEEP_WAKEUP_EXT0) {
     // Pin state changed
-    if (isDoorOpen()) {
+    if (doorOpen) {
       nag_count = 0;
       sendNotification("You've got mail! Hatch opened." + battInfo);
     } else {
@@ -152,7 +153,7 @@ void setup() {
   } 
   else if (wakeup_reason == ESP_SLEEP_WAKEUP_TIMER) {
     // Door hasn't been closed
-    if (isDoorOpen()) {
+    if (doorOpen) {
       nag_count++;
       sendNotification("Reminder #" + String(nag_count) + ": Hatch STILL open." + battInfo);
     }
@@ -164,17 +165,17 @@ void setup() {
     #ifdef REMEMBER_WIFI_CHANNEL
       rtc_magic = 0;  // Invalidate saved channel
     #endif
-    if (isDoorOpen()) {
+    if (doorOpen) {
       Serial.println("Hatch is open - starting nag timer (no initial notification)");
     } else {
       Serial.println("Hatch is closed");
     }
   }
-  
+
   esp_task_wdt_reset();
-  
+
   // Configure sleep mode based on door state
-  if (isDoorOpen()) {
+  if (doorOpen) {
     // Door open - set timer for next nag, wake on close
     int nag_index = min(nag_count, NAG_SCHEDULE_SIZE - 1);
     int next_nag_mins = NAG_SCHEDULE[nag_index];
